@@ -90,12 +90,12 @@ class Spell:
         """Применить эффект спелла к цели"""
         if self.spell_type == SpellType.DAMAGE:
             target.take_damage(self.power)
-        elif self.spell_type == SpellType.HEAL:
+        if self.spell_type == SpellType.HEAL:
             target.current_hp += self.power
             logger.info(f'{target.name} получил лечение на {self.power} hp')
-        elif self.spell_type == SpellType.BUFF:
-            target.current_mana += self.power
-            logger.info(f'{target.name} получил бафф +{self.power} к мане')
+        if self.spell_type == SpellType.BUFF:
+            target.current_hp += self.power
+            logger.info(f'{target.name} получил бафф +{self.power} к настроению')
 
 
 class Grimoire:
