@@ -7,20 +7,26 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stderr, format="<level>{level: <8}</level> | {message}")
 
+"""
+Константы максимальных значений характеристик персонажей
+"""
+MAX_MANA: int = 100
+MAX_HP: int = 100
+MIN_MANA: int = 0
+MIN_HP: int = 0
+
 
 class SpellType(Enum):
     """Атрибуты класса Enum нельзя менять или дополнять. Это стабильные константы"""
-    DAMAGE = 'урон'
-    HEAL = 'лечение'
-    BUFF = 'баф'
+    DAMAGE = 'take_damage'
+    HEAL = 'take_hp'
+    MANA = 'take_mana'
 
 
 class Character:
     def __init__(self, max_mana: int, max_hp: int, name: str):
-        if not 0 <= max_mana <= 100:
-            raise ValueError('Стартовая манна должна быть в диапазоне 0 - 100')
-        if not 0 <= max_hp <= 100:
-            raise ValueError('Стартовое здоровье должно быть в диапазоне 0 - 100')
+        self._validate_stats(max_mana, max_hp)
+
         self.max_hp = max_hp
         self.max_mana = max_mana
         self._current_mana = max_mana
@@ -28,6 +34,21 @@ class Character:
         self.level: int = 1
         self.experience = 0
         self.name = name
+
+    def __repr__(self) -> str:
+        return (
+            f'Character(name={self.name!r}, '
+            f'hp={self.current_hp}/{self.max_hp}, '
+            f'mana={self.current_mana}/{self.max_mana}, '
+            f'level={self.level})'
+        )
+
+    @staticmethod
+    def _validate_stats(max_mana, max_hp):
+        if not MIN_MANA <= max_mana <= MAX_MANA:
+            raise ValueError(f'Стартовая манна должна быть в диапазоне {MIN_MANA} - {MAX_MANA}')
+        if not MIN_HP <= max_hp <= MAX_HP:
+            raise ValueError(f'Стартовое здоровье должно быть в диапазоне {MIN_HP} - {MAX_HP}')
 
     @property
     # @property превращает метод в дескриптор. Теперь он вызывается без "()", и связан с setter
@@ -39,7 +60,7 @@ class Character:
     # Сеттер: вызывается, когда мы ПИШЕМ (hero.current_hp = ...)
     def current_hp(self, value):
         # Прием «зажим»/clamping - значение переменной не выйдет за установленные границы (0...max_hp)
-        self._current_hp = max(0, min(value, self.max_hp))
+        self._current_hp = max(MIN_HP, min(value, self.max_hp))
 
     @property
     def current_mana(self) -> int:
@@ -47,21 +68,40 @@ class Character:
 
     @current_mana.setter
     def current_mana(self, value):
-        self._current_mana = max(0, min(value, self.max_mana))
+        self._current_mana = max(MIN_MANA, min(value, self.max_mana))
 
     def take_damage(self, damage: int):
         """Получить урон"""
         self.current_hp -= damage
         logger.info(f'Персонаж {self.name} получил урон {damage}, осталось hp: {self.current_hp}')
 
+    def take_hp(self, amount: int):
+        """Получить лечение"""
+        self.current_hp += amount
+        logger.info(f'Персонаж {self.name} получил hp {amount}, осталось hp: {self.current_hp}')
+
+    def take_mana(self, amount: int):
+        """Получить ману"""
+        self.current_mana += amount
+        logger.info(f'Персонаж {self.name} получил ману {amount}, осталось hp: {self.current_mana}')
+
     def gain_experience(self, exp: int):
         self.experience += exp
         logger.info(f'Персонаж {self.name} получил опыт {exp}, всего опыта: {self.experience}')
 
     def rest(self):
-        self.current_hp = 100
-        self.current_mana = 100
+        self.current_hp = MAX_HP
+        self.current_mana = MIN_MANA
         logger.info('Персонаж отдохнул, здоровье и мана восстановлены')
+
+    def get_status(self) -> str:
+        return (
+            f'Персонаж: {self.name}, '
+            f'hp: {self.current_hp}, '
+            f'мана: {self.current_mana}, '
+            f'уровень: {self.level}, '
+            f'опыт: {self.experience},'
+        )
 
 
 class Spell:
@@ -88,14 +128,11 @@ class Spell:
 
     def apply_effect(self, target: Character):
         """Применить эффект спелла к цели"""
-        if self.spell_type == SpellType.DAMAGE:
-            target.take_damage(self.power)
-        if self.spell_type == SpellType.HEAL:
-            target.current_hp += self.power
-            logger.info(f'{target.name} получил лечение на {self.power} hp')
-        if self.spell_type == SpellType.BUFF:
-            target.current_hp += self.power
-            logger.info(f'{target.name} получил бафф +{self.power} к настроению')
+        spell_type_object = self.spell_type  # берем из атрибута Spell экземпляр объекта SpellType.attribute_name
+        effect_name = spell_type_object.value  # достаем из объекта SpellType.attribute_name значение переменной
+        if effect_name:
+            method = getattr(target, effect_name)  # получаем obj.attr
+            method(self.power)  # вызываем obj.attr()
 
 
 class Grimoire:
@@ -111,6 +148,12 @@ class Grimoire:
             return [input_spells]
         else:
             return input_spells
+
+    def __str__(self):
+        return f'Гримуар {self.__class__.__name__}'
+
+    def __repr__(self):
+        return f'Grimoire: (spell_list={self.spell_list})'
 
     def add_spell(self, spell: Spell):
         self.spell_list.append(spell)
