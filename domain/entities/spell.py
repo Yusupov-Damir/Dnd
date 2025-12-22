@@ -1,6 +1,8 @@
 from loguru import logger
+
+from domain.entities.creature import Creature
 from domain.enums.spell_type import SpellType
-from domain.entities.character import Character
+
 
 class Spell:
     def __init__(self, name: str, mana_cost: int, level: int, spell_type: SpellType, power: int):
@@ -30,11 +32,10 @@ class Spell:
         """Активировать заклинание"""
         logger.info(f'Каст спелла {self.name} ✨')
 
-    def apply_effect(self, target: Character):
+    def apply_effect(self, target: Creature):
         """Применить эффект заклинания к цели"""
-        if not isinstance(target, Character):
+        if not isinstance(target, Creature):
             raise TypeError('Цель должна быть экземпляром класса Character')
-
 
         effect_method_name = self.spell_type.value
         """

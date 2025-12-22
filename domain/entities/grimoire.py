@@ -1,4 +1,6 @@
 from loguru import logger
+
+from .creature import Creature
 from domain.entities.spell import Spell
 from domain.entities.character import Character
 
@@ -46,7 +48,7 @@ class Grimoire:
                 return spell
         return None
 
-    def cast_spell(self, spell_name: str, character: Character, target: Character) -> None:
+    def cast_spell(self, spell_name: str, character: Character, target: Creature) -> None:
         spell = self.get_spell_by_name(spell_name)
         if spell is None:
             raise ValueError(f'Спелл {spell_name} отсутствует в гримуаре!')
@@ -58,6 +60,8 @@ class Grimoire:
             character.current_mana -= spell.mana_cost
             spell.cast()
             spell.apply_effect(target)
-            character.gain_experience(10)
+            # Опыт может получить только Игрок
+            if isinstance(character, Character):
+                character.gain_experience(10)
             return None
         raise ValueError(f'Текущий остаток маны:{character.current_mana}, стоимость спелла:{spell.mana_cost}')
