@@ -18,7 +18,7 @@ def setup_logging() -> None:
     logger.add(
         sys.stderr,
         format="<level>{level: <8}</level> | {message}",
-        level="INFO"
+        level="DEBUG"
     )
 
 

@@ -23,8 +23,20 @@ def parse_json_object(raw: str) -> dict | None:
         first_newline = raw.find("\n")
         if first_newline != -1:
             raw = raw[first_newline + 1:]
-        # Убираем закрывающие ```
-        raw = raw.rstrip("` \n")
+            # Ищем закрывающие ```
+            closing_fence = raw.rfind("```")
+            if closing_fence != -1:
+                raw = raw[:closing_fence]
+
+            raw = raw.strip()
+
+        # Пытаемся найти JSON объект в строке (на случай если LLM добавил текст после JSON)
+        # Ищем первый { и последний }
+        first_brace = raw.find("{")
+        last_brace = raw.rfind("}")
+
+        if first_brace != -1 and last_brace != -1 and first_brace < last_brace:
+            raw = raw[first_brace:last_brace + 1]
 
     try:
         parsed = json.loads(raw)
